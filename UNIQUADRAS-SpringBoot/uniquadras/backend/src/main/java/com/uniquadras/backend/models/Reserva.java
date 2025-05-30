@@ -1,15 +1,7 @@
 package com.uniquadras.backend.models;
 
-
-
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.time.LocalDateTime; // Manter se for usar data de criação da reserva
 
 @Entity
 @Table(name = "reservas")
@@ -19,31 +11,30 @@ public class Reserva {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "id_usuario")
-    private Long idUsuario;
+    @ManyToOne
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
-    @Column(name = "id_quadra")
-    private Long idQuadra;
+    @ManyToOne
+    @JoinColumn(name = "id_quadra", nullable = false)
+    private Quadra quadra;
 
-    @Column(name = "data_reserva")
-    private LocalDateTime dataReserva;
+    @OneToOne // Um horário pode ter apenas uma reserva
+    @JoinColumn(name = "id_horario", nullable = false)
+    private Horario horario;
 
-    @Column(name = "horario_inicio")
-    private String horarioInicio;
-
-    @Column(name = "horario_fim")
-    private String horarioFim;
+    @Column(name = "data_criacao")
+    private LocalDateTime dataCriacao; // Para registrar quando a reserva foi feita
 
     // Construtores
     public Reserva() {
     }
 
-    public Reserva(Long idUsuario, Long idQuadra, LocalDateTime dataReserva, String horarioInicio, String horarioFim) {
-        this.idUsuario = idUsuario;
-        this.idQuadra = idQuadra;
-        this.dataReserva = dataReserva;
-        this.horarioInicio = horarioInicio;
-        this.horarioFim = horarioFim;
+    public Reserva(Usuario usuario, Quadra quadra, Horario horario) {
+        this.usuario = usuario;
+        this.quadra = quadra;
+        this.horario = horario;
+        this.dataCriacao = LocalDateTime.now(); // Define a data de criação no momento da reserva
     }
 
     // Getters e Setters
@@ -55,43 +46,35 @@ public class Reserva {
         this.id = id;
     }
 
-    public Long getIdUsuario() {
-        return idUsuario;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setIdUsuario(Long idUsuario) {
-        this.idUsuario = idUsuario;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
-    public Long getIdQuadra() {
-        return idQuadra;
+    public Quadra getQuadra() {
+        return quadra;
     }
 
-    public void setIdQuadra(Long idQuadra) {
-        this.idQuadra = idQuadra;
+    public void setQuadra(Quadra quadra) {
+        this.quadra = quadra;
     }
 
-    public LocalDateTime getDataReserva() {
-        return dataReserva;
+    public Horario getHorario() {
+        return horario;
     }
 
-    public void setDataReserva(LocalDateTime dataReserva) {
-        this.dataReserva = dataReserva;
+    public void setHorario(Horario horario) {
+        this.horario = horario;
     }
 
-    public String getHorarioInicio() {
-        return horarioInicio;
+    public LocalDateTime getDataCriacao() {
+        return dataCriacao;
     }
 
-    public void setHorarioInicio(String horarioInicio) {
-        this.horarioInicio = horarioInicio;
-    }
-
-    public String getHorarioFim() {
-        return horarioFim;
-    }
-
-    public void setHorarioFim(String horarioFim) {
-        this.horarioFim = horarioFim;
+    public void setDataCriacao(LocalDateTime dataCriacao) {
+        this.dataCriacao = dataCriacao;
     }
 }

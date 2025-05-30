@@ -1,7 +1,5 @@
 package com.uniquadras.backend.services;
 
-
-
 import com.uniquadras.backend.models.Usuario;
 import com.uniquadras.backend.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +25,10 @@ public class UsuarioService {
 
     public Usuario criar(Usuario usuario) {
         usuario.setDataCadastro(LocalDateTime.now());
-        usuario.setIdTipoUsuario(1); // Define como usuário padrão
-        // Em um projeto real, a senha deve ser criptografada aqui
+        if (usuario.getIdTipoUsuario() == null) {
+            usuario.setIdTipoUsuario(1); // Define como usuário padrão se não for especificado
+        }
+        // Em um projeto real, a senha deve ser criptografada aqui (ex: com BCryptPasswordEncoder)
         return usuarioRepository.save(usuario);
     }
 
@@ -57,5 +57,9 @@ public class UsuarioService {
                     usuario.setIdTipoUsuario(2); // Assume que 2 é o ID para administrador
                     return usuarioRepository.save(usuario);
                 });
+    }
+
+    public Optional<Usuario> buscarPorEmail(String email) {
+        return usuarioRepository.findByEmail(email);
     }
 }

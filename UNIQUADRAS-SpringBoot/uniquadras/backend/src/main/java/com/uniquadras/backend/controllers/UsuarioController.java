@@ -1,27 +1,19 @@
 package com.uniquadras.backend.controllers;
 
-
-
-import java.util.List;
-import java.util.Optional;
-
+import com.uniquadras.backend.models.Usuario;
+import com.uniquadras.backend.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.uniquadras.backend.models.Usuario;
-import com.uniquadras.backend.services.UsuarioService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/usuarios")
+@CrossOrigin(origins = "http://localhost:5173") // Permitir requisições do frontend
 public class UsuarioController {
 
     @Autowired
@@ -41,9 +33,40 @@ public class UsuarioController {
     }
 
     @PostMapping("/cadastro")
-    public ResponseEntity<Usuario> cadastrarUsuario(@RequestBody Usuario usuario) {
+    public ResponseEntity<?> cadastrarUsuario(@RequestBody Usuario usuario) {
+        Optional<Usuario> existingUser = usuarioService.buscarPorEmail(usuario.getEmail());
+        if (existingUser.isPresent()) {
+            return new ResponseEntity<>(Map.of("error", "Email já cadastrado."), HttpStatus.CONFLICT);
+        }
         Usuario novoUsuario = usuarioService.criar(usuario);
+        // Retornar um DTO ou apenas dados básicos do usuário para evitar expor a senha
         return new ResponseEntity<>(novoUsuario, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUsuario(@RequestBody Map<String, String> credenciais) {
+        String email = credenciais.get("email");
+        String senha = credenciais.get("senha");
+
+        if (email == null || senha == null) {
+            return new ResponseEntity<>(Map.of("error", "Email e senha são obrigatórios."), HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Usuario> usuarioOptional = usuarioService.buscarPorEmail(email);
+
+        if (usuarioOptional.isPresent()) {
+            Usuario usuario = usuarioOptional.get();
+            // Em um projeto real, aqui você usaria um PasswordEncoder para verificar a senha
+            if (usuario.getSenha().equals(senha)) {
+                // Retornar um DTO do usuário e talvez um token JWT em um projeto real
+                // Por enquanto, apenas o usuário
+                return new ResponseEntity<>(Map.of("user", usuario, "token", "fake-token"), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(Map.of("error", "Senha incorreta."), HttpStatus.UNAUTHORIZED);
+            }
+        } else {
+            return new ResponseEntity<>(Map.of("error", "Usuário não encontrado com este email."), HttpStatus.NOT_FOUND);
+        }
     }
 
     @PutMapping("/{id}")

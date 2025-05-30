@@ -26,7 +26,7 @@ public class Usuario {
     private LocalDateTime dataCadastro;
 
     @Column(name = "id_tipo_usuario")
-    private Integer idTipoUsuario;
+    private Integer idTipoUsuario; // 1 para usuário comum, 2 para administrador
 
     // Construtores
     public Usuario() {
