@@ -491,7 +491,3 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Nenhuma data foi selecionada.");
   }
 });
-
-
-
-

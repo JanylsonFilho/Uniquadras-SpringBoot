@@ -10,7 +10,7 @@
 <body class="bg-azul-marinho text-light">
 
   <!-- NAVBAR -->
-  <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #000 !important;"></nav>
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #000 !important;">
     <div class="container">
       <a class="navbar-brand" href="/">
         <img src="assets/logo-unifor.png" alt="Logo Unifor" height="40">
@@ -25,7 +25,9 @@
           <li class="nav-item"><a class="nav-link" href="estrutura.html">Estrutura</a></li>
           <li class="nav-item"><a class="nav-link" href="contato.html">Contato</a></li>
           <li class="nav-item"><a class="nav-link" href="reservas.html">Reservas</a></li> <!-- Novo item -->
-          <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+          <li class="nav-item" id="user-navbar">
+            <a class="nav-link" href="login.html">Login</a>
+          </li>
         </ul>
       </div>
     </div>
@@ -90,9 +92,38 @@
   </footer>
 
   <!-- SCRIPTS -->
+
+   <!--SCRIPT PARA APARECER O NOME DO USUARIO LOGADO  -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const userNavbar = document.getElementById("user-navbar");
+      const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+      if (usuario && usuario.nome) {
+        userNavbar.innerHTML = `
+          <div class="dropdown">
+            <a class="nav-link dropdown-toggle text-white" href="#" id="usuarioMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              👤 ${usuario.nome.split(" ")[0]}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#">Perfil</a></li>
+              <li><a class="dropdown-item text-danger" href="#" id="logoutBtn">Sair</a></li>
+            </ul>
+          </div>
+        `;
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          localStorage.removeItem("usuarioLogado");
+          window.location.href = "login.html";
+        });
+      }
+    });
+  </script>
+
   <script type="module" src="/src/auth.js"></script>
   <script type="module" src="/src/admin.js"></script>
   <script type="module" src="/src/reservas.js"></script>
   <script type="module" src="/src/quadras.js"></script>
+  <script type="module" src="/src/navbar.js"></script>
 </body>
 </html>

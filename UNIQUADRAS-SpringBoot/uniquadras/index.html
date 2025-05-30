@@ -21,21 +21,29 @@
             <li class="nav-item"><a class="nav-link" href="quemsomos.html">Quem Somos</a></li>
             <li class="nav-item"><a class="nav-link" href="estrutura.html">Estrutura</a></li>
             <li class="nav-item"><a class="nav-link" href="contato.html">Contato</a></li>
-            <li class="nav-item"><a class="nav-link" href="reservas.html">Reservas</a></li> <!-- Novo item -->
-            <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+            <li class="nav-item"><a class="nav-link" id="reservass" href="reservas.html">Reservas</a></li> <!-- Novo item -->
+            <li class="nav-item" id="user-navbar">
+               <a class="nav-link" href="login.html">Login</a>
+            </li>
+
           </ul>
         </div>
       </div>
     </nav>
 
-    <!-- Banner -->
+      <!-- Banner -->
     <header class="banner">
-      <div class="banner-content">
-        <h1>Reserve seu horário em nossas quadras!</h1>
-        <p>Gratuito para alunos unifor.</p>
-        <img src="assets/parqueDesportivo.unifor 1.png" alt="Parque desportivo Unifor" height="300" />
+      <div class="banner-container">
+        <div class="banner-text">
+          <h1>Reserve seu horário em nossas quadras!</h1>
+          <p>Gratuito para alunos unifor.</p>
+        </div>
+        <div class="banner-image">
+          <img src="assets/parqueDesportivo.unifor 1.png" alt="Parque desportivo Unifor" />
+        </div>
       </div>
     </header>
+
 
     <!-- Seções -->
     <section class="cards-section">
@@ -140,7 +148,7 @@
     <!-- Reserva -->
     <section class="reserva-section">
       <div class="reserva-content">
-        <img src="assets/futsal-unifor.jpeg" alt="Quadra de Esportes" class="reserva-img" />
+        <img src="assets/futsal.jpg" alt="Quadra de Esportes" class="reserva-img" />
     
         <div class="reserva-text">
           <h2>FAÇA SUA RESERVA ONLINE</h2>
@@ -180,9 +188,38 @@
       © 2025 - Todos os direitos reservados
     </div>
   </footer>
+  <!--SCRIPT PARA APARECER O NOME DO USUARIO LOGADO  -->
+    <!-- <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const userNavbar = document.getElementById("user-navbar");
+      const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+      if (usuario && usuario.nome) {
+        userNavbar.innerHTML = /*html*/ `
+          <div class="dropdown">
+            <a class="nav-link dropdown-toggle text-white" href="#" id="usuarioMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              👤 ${usuario.nome.split(" ")[0]}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#">Perfil</a></li>
+              <li><a class="dropdown-item text-danger" href="#" id="logoutBtn">Sair</a></li>
+            </ul>
+          </div>
+        `;
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          localStorage.removeItem("usuarioLogado");
+          window.location.href = "login.html";
+        });
+      }
+    });
+  </script> -->
+
+
   <script type="module" src="/src/auth.js"></script>
   <script type="module" src="/src/admin.js"></script>
   <script type="module" src="/src/reservas.js"></script>
   <script type="module" src="/src/quadras.js"></script>
+  <script type="module" src="/src/navbar.js"></script>
 </body>
 </html>

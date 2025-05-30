@@ -30,30 +30,40 @@ body {
   padding: 20px; /* Adiciona espaçamento interno */
 }
 
-
-.banner-content {
-  max-width: 800px; /* Aumenta a largura máxima do conteúdo */
-  margin-left: 20px; /* Adiciona espaço à esquerda */
+.banner-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 60px;
+  padding: 60px 40px;
+  flex-wrap: wrap;
 }
 
-.banner-content h1 {
-  font-size: 4.5rem; /* Aumenta o tamanho do título */
+.banner-text {
+  flex: 1;
+  max-width: 650px;
+}
+
+.banner-text h1 {
+  font-size: 4.5rem; /* Aumentado */
   margin-bottom: 1.5rem;
-  text-shadow: 2px 2px 5px #000; /* Adiciona sombra ao texto */
+  text-shadow: 2px 2px 6px #000;
 }
 
-.banner-content p {
-  font-size: 2rem; /* Aumenta o tamanho do parágrafo */
-  margin-bottom: 2rem;
+.banner-text p {
+  font-size: 2.2rem; /* Aumentado */
+  margin-bottom: 1.5rem;
 }
 
-.banner-content img {
-  display: block;
-  margin-top: 20px;
-  margin-bottom: 20px; /* Adiciona espaçamento abaixo da imagem */
-  max-width: 100%; /* Garante que a imagem não ultrapasse o container */
-  height: auto; /* Mantém a proporção da imagem */
+.banner-image img {
+  width: 700px; /* Aumentado de 600 para 700 */
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
 }
+
+
+
 
 
 .cards-section {
@@ -266,6 +276,7 @@ body {
   background-color: #001f3f; /* Azul-marinho mais escuro */
   color: #ffffff; /* Texto branco para contraste */
 }
+
 
 
 @media (max-width: 768px) {

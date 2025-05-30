@@ -13,14 +13,14 @@ document.addEventListener("DOMContentLoaded", function () {
             email: "adm@unifor.br",
             telefone: "(85) 99999-9999",
             senha: "adm123",
-            tipo: "adm"
+            tipo: 2
         },
         {
             nome: "João Silva",
             email: "joao@unifor.br",
             telefone: "(85) 98888-7777",
             senha: "joao123",
-            tipo: "usuario"
+            tipo: 1
         }
         ];
         localStorage.setItem("usuarios", JSON.stringify(usuariosDefault));
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function () {
         email,
         telefone,
         senha,
-        tipo: "usuario"
+        tipo: 1
       };
 
      
@@ -87,28 +87,34 @@ document.addEventListener("DOMContentLoaded", function () {
         alert("Por favor, preencha todos os campos!");
         return;
       }
-  
+
       try {
-        const response = await fetch("http://localhost:3000/usuarios", {
+        const response = await fetch("http://localhost:3000/usuarios/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, senha }),
         });
-  
+
         if (response.ok) {
-          const usuario = await response.json();
-          localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
-  
-          if (usuario.tipo === "adm") {
-            alert(`Bem-vindo, ADM ${usuario.nome}!`);
+          // Desestrutura user e token da resposta
+          const { user, token } = await response.json();
+
+          // Armazena no localStorage
+          localStorage.setItem("usuarioLogado", JSON.stringify({ user, token }));
+         
+
+          // Decide pela role com base em id_tipo_usuario
+          if (user.id_tipo_usuario === "2") {
+            alert(`Bem‑vindo, ADM ${user.nome}!`);
             window.location.href = "painel-adm.html";
           } else {
-            alert(`Bem-vindo ao sistema de reservas, ${usuario.nome}!`);
-            window.location.href = "horarios-disponiveis.html";
+            alert(`Bem‑vindo ao sistema de reservas, ${user.nome}!`);
+            window.location.href = "reservas.html";
           }
         } else {
-          const error = await response.json();
-          alert(`Erro no login: ${error.message}`);
+          // Captura a mensagem de erro padrão do backend
+          const { error } = await response.json();
+          alert(`Erro no login: ${error}`);
         }
       } catch (err) {
         console.error("Erro ao fazer login:", err);

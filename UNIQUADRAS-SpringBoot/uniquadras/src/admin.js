@@ -1,138 +1,89 @@
-// Painel do administrador
+// admin.js
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-document.addEventListener("DOMContentLoaded", function () {
-    const tabelaHorariosAdm = document.querySelector("tbody");
-    const dataInputAdm = document.querySelector('input[type="date"]');
-  
-    // Função para carregar horários no painel do administrador
-    function carregarHorariosAdm(dataSelecionada) {
-      const horariosPorData = JSON.parse(localStorage.getItem("horariosPorData")) || {};
-      const horarios = horariosPorData[dataSelecionada] || [
-        { quadra: "QUADRA 1", horarios: ["Disponível", "Disponível", "Disponível", "Disponível", "Disponível"] },
-        { quadra: "QUADRA 2", horarios: ["Disponível", "Disponível", "Disponível", "Disponível", "Disponível"] },
-        { quadra: "QUADRA 3", horarios: ["Disponível", "Disponível", "Disponível", "Disponível", "Disponível"] }
-      ];
-  
-      // Atualiza corpo da tabela
-      tabelaHorariosAdm.innerHTML = "";
-      horarios.forEach((quadra, indexQuadra) => {
-        let row = `<tr><th>${quadra.quadra}</th>`;
-        quadra.horarios.forEach((status, indexHorario) => {
-          const btnClass = status === "Disponível" ? "btn-disponivel" : "btn-indisponivel";
-          row += `<td>
-            <button class="btn ${btnClass} w-100" data-quadra="${indexQuadra}" data-horario="${indexHorario}">
-              ${status}
-            </button>
-          </td>`;
-        });
-        row += `</tr>`;
-        tabelaHorariosAdm.innerHTML += row;
-      });
-  
-      // Adiciona eventos aos botões para permitir alterações
-      document.querySelectorAll("button[data-quadra]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-          const quadraIdx = btn.getAttribute("data-quadra");
-          const horarioIdx = btn.getAttribute("data-horario");
-          const dataSelecionada = document.querySelector('input[type="date"]').value;
-          const horariosPorData = JSON.parse(localStorage.getItem("horariosPorData")) || {};
-          const horarios = horariosPorData[dataSelecionada];
-      
-          // Se não houver usuário logado, impede
-          if (!usuarioLogado) {
-            alert("Você precisa estar logado para fazer uma reserva.");
-            return;
-          }
-      
-          // Se for usuário comum
-          if (usuarioLogado.tipo !== "adm") {
-            if (horarios[quadraIdx].horarios[horarioIdx] !== "Disponível") {
-              alert("Esse horário já está indisponível.");
-              return;
-            }
-      
-            // Reserva válida
-            horarios[quadraIdx].horarios[horarioIdx] = "Indisponível";
-            horariosPorData[dataSelecionada] = horarios;
-            localStorage.setItem("horariosPorData", JSON.stringify(horariosPorData));
-      
-            alert("Reserva feita com sucesso!");
-            btn.textContent = "Indisponível";
-            btn.classList.remove("btn-disponivel");
-            btn.classList.add("btn-indisponivel");
-            btn.setAttribute("disabled", "true");
-      
-          } else {
-            // ADMIN pode alternar livremente
-            const atual = horarios[quadraIdx].horarios[horarioIdx];
-            const novo = atual === "Disponível" ? "Indisponível" : "Disponível";
-            horarios[quadraIdx].horarios[horarioIdx] = novo;
-            horariosPorData[dataSelecionada] = horarios;
-            localStorage.setItem("horariosPorData", JSON.stringify(horariosPorData));
-      
-            btn.textContent = novo;
-            btn.classList.toggle("btn-disponivel", novo === "Disponível");
-            btn.classList.toggle("btn-indisponivel", novo === "Indisponível");
-      
-            if (novo === "Disponível") {
-              btn.removeAttribute("disabled");
-            } else {
-              btn.setAttribute("disabled", "true");
-            }
-          }
-        });
-      });
-      
-    }
-  
-    // Função para salvar horários no painel do administrador
-  
-    // Evento para mudança de data no painel do administrador
-    if (dataInputAdm) {
-      dataInputAdm.addEventListener("change", () => {
-        const dataSelecionada = dataInputAdm.value;
-        if (dataSelecionada) {
-          carregarHorariosAdm(dataSelecionada);
-        }
-      });
-  
-      // Carrega os horários para a data atual ao carregar a página
-      const dataAtual = new Date().toISOString().split("T")[0];
-      dataInputAdm.value = dataAtual;
-      carregarHorariosAdm(dataAtual);
-    }
-  });
-  
-  document.addEventListener("DOMContentLoaded", function () {
-    // Campo de data no painel do administrador
-    const dataInputAdm = document.getElementById("dataSelecionada");
-  
-    if (dataInputAdm) {
-      // Salva a data selecionada no localStorage
-      dataInputAdm.addEventListener("change", () => {
-        const dataSelecionada = dataInputAdm.value;
-        if (dataSelecionada) {
-          localStorage.setItem("dataSelecionada", dataSelecionada);
-        }
-      });
-  
-      // Carrega a data salva ao abrir o painel do administrador
-      const dataSalva = localStorage.getItem("dataSelecionada");
-      if (dataSalva) {
-        dataInputAdm.value = dataSalva;
+
+import {
+  renderizarListaQuadras,
+  adicionarOuEditarQuadra,
+  removerQuadra,
+  preencherFormularioEdicao,
+  inicializarFormularioQuadra
+} from './quadras.js';
+
+import {
+  carregarHorariosAdm,
+  formatarDataParaExibicao,
+  atualizarReserva, // Esta função será refatorada ou usada de forma diferente
+  buscarReservas, // Esta função será refatorada ou usada de forma diferente
+  buscarQuadrasParaQuadro, // Será usada para popular o select de quadras no modal de horários
+  adicionarOuEditarHorario, // NOVO
+  removerHorario, // NOVO
+  preencherFormularioEdicaoHorario, // NOVO
+  renderizarListaQuadrasParaSelect // NOVO
+} from './horarios.js';
+
+document.addEventListener("DOMContentLoaded", async function () {
+  const dataInputAdm = document.getElementById('dataSelecionada');
+  const dataQuadroReservasSpan = document.getElementById('dataQuadroReservasTable');
+
+  // NOVO: Elementos para o CRUD de Horário
+  const btnAddHorario = document.getElementById('btnAddHorario');
+  const modalHorario = new bootstrap.Modal(document.getElementById('modalHorario'));
+  const formHorario = document.getElementById('formHorario');
+  const horarioIdInput = document.getElementById('horarioId');
+  const modalHorarioQuadraSelect = document.getElementById('modalHorarioQuadraSelect');
+  const modalHorarioDataInput = document.getElementById('modalHorarioDataInput');
+  const modalHorarioHoraInput = document.getElementById('modalHorarioHoraInput');
+  const modalHorarioStatusSelect = document.getElementById('modalHorarioStatusSelect');
+
+
+  // Inicializa lista de quadras e formulário
+  await renderizarListaQuadras();
+  inicializarFormularioQuadra();
+
+  // Carrega os horários da data atual
+  const dataAtual = new Date().toISOString().split("T")[0];
+  dataInputAdm.value = dataAtual;
+  dataQuadroReservasSpan.textContent = formatarDataParaExibicao(dataAtual);
+  await carregarHorariosAdm(dataAtual);
+
+  // Evento para mudança de data
+  if (dataInputAdm) {
+    dataInputAdm.addEventListener("change", async () => {
+      const dataSelecionada = dataInputAdm.value;
+      if (dataSelecionada) {
+        dataQuadroReservasSpan.textContent = formatarDataParaExibicao(dataSelecionada);
+        await carregarHorariosAdm(dataSelecionada);
       }
-    }
-  
-    // Recuperar a data selecionada em outras páginas
-    const dataSelecionada = localStorage.getItem("dataSelecionada");
-    if (dataSelecionada) {
-      console.log("Data selecionada:", dataSelecionada);
-      // Use essa data para associar alterações ou exibir informações específicas
-    } else {
-      console.log("Nenhuma data foi selecionada.");
-    }
-  });
-  
+    });
+  }
+
+  // NOVO: Evento para abrir o modal de adicionar/editar horário
+  if (btnAddHorario) {
+    btnAddHorario.addEventListener('click', async () => {
+      formHorario.reset(); // Limpa o formulário
+      horarioIdInput.value = ''; // Garante que é uma criação
+      modalHorarioDataInput.value = dataInputAdm.value; // Preenche a data com a data atual selecionada
+      await renderizarListaQuadrasParaSelect(modalHorarioQuadraSelect); // Popula o select de quadras
+      modalHorario.show();
+    });
+  }
+
+  // NOVO: Evento para submeter o formulário do modal de horário
+  if (formHorario) {
+    formHorario.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        id: horarioIdInput.value || undefined, // Se tiver ID, é edição
+        id_quadra: modalHorarioQuadraSelect.value,
+        data: modalHorarioDataInput.value,
+        horario: modalHorarioHoraInput.value,
+        status: modalHorarioStatusSelect.value,
+      };
+      await adicionarOuEditarHorario(data); // Chama a função CRUD de horários
+      modalHorario.hide(); // Fecha o modal
+      await carregarHorariosAdm(dataInputAdm.value); // Recarrega a tabela de horários
+    });
+  }
+});
