@@ -9,6 +9,9 @@ import com.uniquadras.backend.repositories.QuadraRepository;
 import com.uniquadras.backend.repositories.ReservaRepository;
 import com.uniquadras.backend.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import com.uniquadras.backend.events.ReservaCriadaEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Import para @Transactional
 
@@ -18,6 +21,8 @@ import java.util.Optional;
 
 @Service
 public class ReservaService {
+    @Autowired
+    private ApplicationEventPublisher eventPublisher; 
 
     @Autowired
     private ReservaRepository reservaRepository;
@@ -78,6 +83,10 @@ public class ReservaService {
         // Atualiza o status do horário para "Indisponível" após a reserva
         horario.setStatus("Indisponível");
         horarioRepository.save(horario);
+
+        // Publica evento de reserva criada
+        // Permite que outros componentes do sistema possam reagir a essa ação
+        eventPublisher.publishEvent(new ReservaCriadaEvent(this, novaReserva));
 
         return novaReserva;
     }
