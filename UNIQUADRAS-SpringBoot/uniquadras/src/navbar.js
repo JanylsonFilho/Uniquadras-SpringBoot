@@ -1,34 +1,43 @@
 // src/navbar.js
 document.addEventListener('DOMContentLoaded', () => {
   const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-  const userNavbarElement = document.getElementById('user-navbar');
+  const navbar = document.querySelector('.navbar-nav');
+  const botaoLogin = document.getElementById('user-navbar')
+  //const botaoReservar = document.getElementById('reservass')
 
-  if (usuarioLogado && usuarioLogado.user && usuarioLogado.user.nome) {
-    const nomeCurto = usuarioLogado.user.nome.split(" ")[0];
-    const userType = usuarioLogado.user.idTipoUsuario === 2 ? 'ADM' : 'Usuário';
-    const linkPainelAdm = usuarioLogado.user.idTipoUsuario === 2 ? '<li><a class="dropdown-item" href="painel-adm.html">Painel Admin</a></li>' : '';
-    const linkMinhasReservas = usuarioLogado.user.idTipoUsuario === 1 ? '<li><a class="dropdown-item" href="minhasReservas.html">Minhas Reservas</a></li>' : '';
+  if (usuarioLogado) {
+    const nome = usuarioLogado.user.nome || 'Usuário';
+    const tipo = usuarioLogado.user.id_tipo_usuario;
+    console.log(tipo)
 
-    userNavbarElement.innerHTML = `
-      <div class="dropdown">
-        <a class="nav-link dropdown-toggle text-white" href="#" id="usuarioMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-          👤 ${nomeCurto} (${userType})
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#">Perfil</a></li>
-          ${linkMinhasReservas}
-          ${linkPainelAdm}
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item text-danger" href="#" id="logoutBtn">Sair</a></li>
-        </ul>
-      </div>
-    `;
+    const nomeUsuario = document.createElement('li');
+    nomeUsuario.classList.add('nav-item');
+    nomeUsuario.innerHTML = `<a class="nav-link" href="#" id="linkPerfil">${nome}</a>`;
+    console.log(usuarioLogado.user.nome)
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.removeItem("usuarioLogado");
-      window.location.href = "login.html";
+    const logoutItem = document.createElement('li');
+    logoutItem.classList.add('nav-item');
+    logoutItem.innerHTML = `<a class="nav-link" href="#" id="logout">Sair</a>`;
+
+    navbar.appendChild(nomeUsuario);
+    navbar.appendChild(logoutItem);
+
+    document.getElementById('linkPerfil').addEventListener('click', (e) => {
+      e.preventDefault();
+      if (tipo === "2") {
+        window.location.href = '/painel-adm.html'; // Caminho para admins
+      } else {
+        window.location.href = '/minhas-reservas.html';  // Caminho para usuários comuns
+      }
     });
-  } else {
-    userNavbarElement.innerHTML = `<a class="nav-link" href="login.html">Login</a>`;
+
+    if (botaoLogin) botaoLogin.style.display = 'none';
+
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = '/login.html';
+    });
+
+
   }
 });

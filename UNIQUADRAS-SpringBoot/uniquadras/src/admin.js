@@ -86,4 +86,5 @@ document.addEventListener("DOMContentLoaded", async function () {
       await carregarHorariosAdm(dataInputAdm.value); // Recarrega a tabela de horários
     });
   }
+
 });

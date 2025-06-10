@@ -10,6 +10,8 @@
 </head>
 <body class="bg-azul-marinho text-light">
 
+
+
   <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #000 !important;">
     <div class="container">
       <a class="navbar-brand" href="/">
@@ -37,9 +39,12 @@
     <div class="container-fluid px-5">
       <h2 class="text-white mb-5 fs-1 text-center fw-bold">Painel do Administrador</h2>
 
-      <div class="d-flex justify-content-end mb-4 gap-2">
+      <div class="d-flex justify-content-center mb-4 gap-2">
         <button class="btn btn-success" id="btnAdicionarNovaQuadra">Adicionar Nova Quadra</button>
         <button class="btn btn-info" id="btnAddHorario">Adicionar Novo Horário</button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUsuario" onclick="carregarUsuarios()">
+          <i class="bi bi-stars me-1"></i> Gerenciar Usuários
+        </button>
       </div>
 
       <div class="bg-primary bg-opacity-75 text-white p-4 rounded-4 mx-auto" style="max-width: 1000px;">
@@ -80,10 +85,6 @@
                 <div class="mb-3">
                   <label for="nomeQuadraModal" class="form-label">Nome da Quadra</label>
                   <input type="text" class="form-control" id="nomeQuadraModal" required>
-                </div>
-                <div class="mb-3">
-                  <label for="localizacaoQuadraModal" class="form-label">Localização</label>
-                  <input type="text" class="form-control" id="localizacaoQuadraModal" value="Parque Desportivo" required>
                 </div>
                 <div class="mb-3">
                   <label for="tipoQuadraModal" class="form-label">Tipo</label>
@@ -143,6 +144,111 @@
           </div>
       </div>
 
+      <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalUsuarioLabel">Gerenciar Usuários</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome ou email...">
+              </div>
+              <ul class="list-group" id="listaUsuarios"></ul>
+
+              <hr class="my-4">
+
+              <form id="formUsuarioSelecionado" style="display: none;">
+                <input type="hidden" id="usuarioId">
+                <div class="mb-3">
+                  <label class="form-label">Nome</label>
+                  <input type="text" id="usuarioNome" class="form-control" readonly>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" id="usuarioEmail" class="form-control" readonly>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Tipo de Usuário</label>
+                  <select id="usuarioTipo" class="form-select">
+                    <option value="1">Usuário Comum</option>
+                    <option value="2">Administrador</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-success">Salvar Alterações</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        let todosUsuarios = [];
+        const apiUsuarios = "http://localhost:3000/usuarios";
+
+        async function carregarUsuarios() {
+          try {
+            const res = await fetch(`${apiUsuarios}/`); // GET na sua rota
+            todosUsuarios = await res.json();
+            exibirUsuarios(todosUsuarios);
+          } catch (err) {
+            console.error('Erro ao carregar usuários', err);
+          }
+        }
+
+        function exibirUsuarios(lista) {
+          const ul = document.getElementById('listaUsuarios');
+          ul.innerHTML = '';
+
+          lista.forEach(usuario => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action';
+            li.textContent = `${usuario.nome} (${usuario.email})`;
+            li.style.cursor = 'pointer';
+            li.onclick = () => selecionarUsuario(usuario);
+            ul.appendChild(li);
+          });
+        }
+
+        document.getElementById('buscaUsuario').addEventListener('input', (e) => {
+          const termo = e.target.value.toLowerCase();
+          const filtrados = todosUsuarios.filter(u =>
+            u.nome.toLowerCase().includes(termo) || u.email.toLowerCase().includes(termo)
+          );
+          exibirUsuarios(filtrados);
+        });
+
+        function selecionarUsuario(usuario) {
+            console.log('Selecionado:', usuario);
+          document.getElementById('usuarioId').value = usuario.id;
+          document.getElementById('usuarioNome').value = usuario.nome;
+          document.getElementById('usuarioEmail').value = usuario.email;
+          document.getElementById('usuarioTipo').value = usuario.id_tipo_usuario;
+          document.getElementById('formUsuarioSelecionado').style.display = 'block';
+        }
+
+        document.getElementById('formUsuarioSelecionado').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('usuarioId').value;
+          const tipo = parseInt(document.getElementById('usuarioTipo').value);
+
+          const rota = tipo === 2
+            ? `${apiUsuarios}/promover/${id}`
+            : `${apiUsuarios}/rebaixar/${id}`;
+
+          try {
+            console.log("Enviando para:", rota);
+            await fetch(rota, { method: 'PUT' });
+            alert('Usuário atualizado!');
+            await carregarUsuarios(); // Atualiza a lista
+          } catch (err) {
+            console.error('Erro ao atualizar usuário', err);
+            alert('Erro ao atualizar usuário.');
+          }
+        });
+      </script>
+
       <div class="col-12 text-center mt-5">
         <button class="btn btn-danger" onclick="sair()">Sair do Painel</button>
       </div>
@@ -180,7 +286,7 @@
   <script type="module" src="/src/auth.js"></script>
   <script type="module" src="/src/admin.js"></script>
   <script type="module" src="/src/quadras.js"></script>
-  <script type="module" src="/src/horarios.js"></script> <script type="module" src="/src/navbar.js"></script>
+  <script type="module" src="/src/navbar.js"></script>
 
   <script>
     function sair() {

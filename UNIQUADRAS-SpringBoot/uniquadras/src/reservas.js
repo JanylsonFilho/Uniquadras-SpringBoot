@@ -6,16 +6,15 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 
 document.addEventListener("DOMContentLoaded", async function () {
   const tipoQuadraSelect = document.getElementById('tipoQuadra');
-  const esporteSelect = document.getElementById('esporte'); // Manter Esporte, mas note que não é salvo no backend
+  const esporteSelect = document.getElementById('esporte');
   const quadraSelect = document.getElementById('quadra');
   const dataInput = document.getElementById('data');
   const horarioSelect = document.getElementById('horario');
   const reservaForm = document.getElementById('reservaForm');
 
-  const apiBase = "http://localhost:8080"; // URL BASE ATUALIZADA
-  const apiQuadras = `${apiBase}/quadras`;
-  const apiReservas = `${apiBase}/reservas`;
-  const apiHorarios = `${apiBase}/horarios`;
+  const apiQuadras = "http://localhost:3000/quadras";
+  const apiReservas = "http://localhost:3000/reservas";
+  const apiHorarios = "http://localhost:3000/horarios";
 
   let todasQuadras = [];
   let horariosDisponiveis = [];
@@ -82,7 +81,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     try {
       const response = await fetch(`${apiHorarios}?data=${dataSelecionada}&id_quadra=${quadraIdSelecionada}`);
       if (!response.ok) throw new Error('Erro ao buscar horários disponíveis.');
-      const horarios = await response.json(); // Já retorna a lista de objetos Horario
+      const horariosObj = await response.json();
+      const horarios = Array.isArray(horariosObj) ? horariosObj : horariosObj.rows || [];
+      console.log("Horários recebidos:", horarios);
+      horariosDisponiveis = horarios.filter(h => h.status === "Disponível");
+      
 
       // Filtra apenas horários disponíveis
       horariosDisponiveis = horarios.filter(h => h.status === "Disponível");
@@ -111,18 +114,17 @@ document.addEventListener("DOMContentLoaded", async function () {
     event.preventDefault();
 
     const idQuadra = quadraSelect.value;
-    const esporte = esporteSelect.value; // Informação usada apenas para exibição no frontend
-    const data = dataInput.value; // Informação usada apenas para exibição no frontend
+    const esporte = esporteSelect.value;
+    const data = dataInput.value;
     const idHorario = horarioSelect.value;
 
-    const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-    const usuarioId = usuarioLogado?.user?.id; // Acessa o ID do usuário logado
-
-    if (!usuarioId) {
-      alert("Você precisa estar logado para fazer uma reserva.");
-      window.location.href = "login.html";
-      return;
-    }
+  const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+  const usuarioId = usuarioLogado?.user?.id || usuarioLogado?.id;
+  if (!usuarioId) {
+    alert("Você precisa estar logado para fazer uma reserva.");
+    window.location.href = "login.html";
+    return;
+  }
 
     if (!idQuadra || !esporte || !data || !idHorario) {
       alert('Por favor, preencha todos os campos!');
@@ -137,7 +139,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id_usuario: usuarioId, // Envia o ID do usuário
+          id_usuario: usuarioLogado.user.id,
           id_quadra: idQuadra,
           id_horario: idHorario
         })
@@ -148,13 +150,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         throw new Error(errorData.error || 'Erro ao criar reserva');
       }
 
-      const reserva = await response.json(); // A resposta agora é um ReservaResponseDTO
-      alert(`✅ Reserva confirmada!\n🟢 Quadra: ${reserva.nomeQuadra}\n🏅 Esporte: ${esporte}\n📅 Data: ${reserva.dataReserva}\n⏰ Horário: ${reserva.horarioReserva}`);
-      // Recarrega os horários disponíveis para refletir a reserva
-      await atualizarHorariosDisponiveis();
+      const reserva = await response.json();
+      alert(`✅ Reserva confirmada!\n🟢 Quadra: ${quadraReservada ? quadraReservada.nome : 'N/A'}\n🏅 Esporte: ${esporte}\n📅 Data: ${data}\n⏰ Horário: ${horarioSelecionado ? horarioSelecionado.horario : ''}`);
+      atualizarHorariosDisponiveis();
     } catch (error) {
       alert('Erro ao criar reserva: ' + error.message);
-      console.error('Erro detalhado:', error);
     }
   });
 

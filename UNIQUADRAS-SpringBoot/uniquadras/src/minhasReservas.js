@@ -1,83 +1,114 @@
-// src/minhasReservas.js
-document.addEventListener('DOMContentLoaded', async () => {
-  const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
-  if (!usuarioLogado || !usuarioLogado.user || !usuarioLogado.user.id) {
-    window.location.href = '/login.html';
+document.addEventListener("DOMContentLoaded", async function () {
+  const apiReservas = "http://localhost:3000/reservas";
+  const apiQuadras = "http://localhost:3000/quadras";
+  const apiHorarios = "http://localhost:3000/horarios";
+  const listaReservas = document.getElementById("listaReservas");
+
+  const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+  const usuarioId = usuarioLogado?.user?.id || usuarioLogado?.id;
+
+  if (!usuarioId) {
+    alert("Você precisa estar logado para ver suas reservas.");
+    window.location.href = "login.html";
     return;
   }
 
-  const userId = usuarioLogado.user.id; // Certifique-se de que o ID do usuário está correto
+  let quadras = [];
+  let horarios = [];
 
-  try {
-    const response = await fetch(`http://localhost:8080/reservas/usuario/${userId}`); // URL ATUALIZADA
-    if (response.status === 204) { // No Content, ou seja, nenhuma reserva
-      document.getElementById('reservasContainer').innerHTML = '<p class="text-center">Nenhuma reserva encontrada.</p>';
-      return;
+  async function carregarDados() {
+    try {
+      const [quadrasRes, horariosRes] = await Promise.all([
+        fetch(apiQuadras),
+        fetch(apiHorarios)
+      ]);
+      quadras = await quadrasRes.json();
+      horarios = await horariosRes.json();
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
     }
-    if (!response.ok) {
-      throw new Error('Erro ao buscar suas reservas.');
-    }
-    const reservas = await response.json();
-    const container = document.getElementById('reservasContainer');
+  }
 
-    if (reservas.length === 0) {
-      container.innerHTML = '<p class="text-center">Nenhuma reserva encontrada.</p>';
-      return;
-    }
+  function obterNomeQuadra(idQuadra) {
+    const quadra = quadras.find(q => q.id == idQuadra);
+    return quadra ? quadra.nome : 'Quadra não encontrada';
+  }
 
-    // Ordenar as reservas por data e depois por horário
-    reservas.sort((a, b) => {
-        const dateA = new Date(a.dataReserva.split('/').reverse().join('-') + 'T' + a.horarioReserva.split(' - ')[0] + ':00');
-        const dateB = new Date(b.dataReserva.split('/').reverse().join('-') + 'T' + b.horarioReserva.split(' - ')[0] + ':00');
-        return dateA - dateB;
-    });
+  function obterHorario(idHorario) {
+    const horario = horarios.find(h => h.id == idHorario);
+    return horario ? horario.horario : 'Horário não encontrado';
+  }
 
+  async function listarReservas() {
+    try {
+      const response = await fetch(`${apiReservas}?id_usuario=${usuarioId}`);
+      if (!response.ok) throw new Error("Erro ao buscar reservas");
 
-    reservas.forEach(reserva => {
-      const card = document.createElement('div');
-      card.classList.add('card', 'mb-3', 'text-dark', 'col-md-5', 'mx-2'); // Adiciona colunas para layout
-      card.innerHTML = `
-        <div class="card-body">
-          <h5 class="card-title">Quadra: ${reserva.nomeQuadra} (${reserva.tipoQuadra})</h5>
-          <p class="card-text">Data: ${reserva.dataReserva}</p>
-          <p class="card-text">Horário: ${reserva.horarioReserva}</p>
-          <button class="btn btn-danger btn-cancelar-reserva" data-id="${reserva.id}">Cancelar Reserva</button>
-        </div>
-      `;
-      container.appendChild(card);
-    });
+      const reservas = await response.json();
 
-    container.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('btn-cancelar-reserva')) {
-        const reservaId = e.target.getAttribute('data-id');
-        if (confirm('Tem certeza que deseja cancelar esta reserva?')) {
+      if (reservas.length === 0) {
+        listaReservas.innerHTML = `<p class="text-muted">Você ainda não fez nenhuma reserva.</p>`;
+        return;
+      }
+
+      listaReservas.innerHTML = "";
+
+      reservas.forEach(reserva => {
+        const nomeQuadra = obterNomeQuadra(reserva.id_quadra);
+        const horario = obterHorario(reserva.id_horario);
+        const card = document.createElement("div");
+        card.className = "col-md-6 mb-4";
+        console.log(reserva.data)
+        
+        card.innerHTML = /*html*/`
+          <div class="card border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+              <span>Reserva nº ${reserva.id}</span>
+              <button class="btn btn-sm btn-danger" data-id="${reserva.id}">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </button>
+            </div>
+            <div class="card-body text-dark">
+              <h5 class="card-title text-dark">${nomeQuadra}</h5>
+              <p class="card-text text-dark"><strong>📅 Data:</strong> ${reserva.data}</p>
+              <p class="card-text text-dark"><strong>⏰ Horário:</strong> ${horario}</p>
+            </div>
+          </div>
+        `;
+        console.log(nomeQuadra)
+
+        // Evento para botão de cancelar
+        card.querySelector('button').addEventListener('click', async () => {
+          const confirmacao = confirm("Tem certeza que deseja cancelar esta reserva?");
+          if (!confirmacao) return;
+
           try {
-            const response = await fetch(`http://localhost:8080/reservas/${reservaId}`, { // URL ATUALIZADA
+            const resp = await fetch(`${apiReservas}/${reserva.id}`, {
               method: 'DELETE'
             });
 
-            if (response.ok) {
-              alert('Reserva cancelada com sucesso!');
-              e.target.closest('.card').remove();
-              // Se não houver mais reservas, exiba a mensagem
-              if (container.children.length === 0) {
-                 container.innerHTML = '<p class="text-center">Nenhuma reserva encontrada.</p>';
-              }
-            } else {
-              const errorData = await response.json();
-              alert('Erro ao cancelar a reserva: ' + (errorData.error || 'Erro desconhecido'));
-            }
-          } catch (error) {
-            console.error('Erro ao cancelar reserva:', error);
-            alert('Erro ao conectar ao servidor para cancelar a reserva.');
-          }
-        }
-      }
-    });
+            if (!resp.ok) throw new Error("Erro ao cancelar reserva");
 
-  } catch (error) {
-    console.error('Erro ao carregar minhas reservas:', error);
-    document.getElementById('reservasContainer').innerHTML = `<p class="text-center text-danger">Erro ao carregar reservas: ${error.message}</p>`;
+            alert("Reserva cancelada com sucesso!");
+            listarReservas(); // Atualiza a lista
+          } catch (error) {
+            alert("Erro ao cancelar: " + error.message);
+          }
+        });
+
+        listaReservas.appendChild(card);
+      });
+
+    } catch (error) {
+      console.error("Erro ao buscar reservas:", error);
+      listaReservas.innerHTML = `<p class="text-danger">Erro ao carregar reservas.</p>`;
+    }
   }
+
+  await carregarDados();
+  await listarReservas();
 });

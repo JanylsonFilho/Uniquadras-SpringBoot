@@ -1,17 +1,34 @@
+
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 document.addEventListener("DOMContentLoaded", function () {
 
-  // Remova esta inicialização de usuários padrão, pois agora o backend gerencia
-  // if (!localStorage.getItem("usuarios")) {
-  //     const usuariosDefault = [ ... ];
-  //     localStorage.setItem("usuarios", JSON.stringify(usuariosDefault));
-  // }
+        // Inicializa usuários padrão
+    if (!localStorage.getItem("usuarios")) {
+        const usuariosDefault = [
+        {
+            nome: "Administrador",
+            email: "adm@unifor.br",
+            telefone: "(85) 99999-9999",
+            senha: "adm123",
+            tipo: 2
+        },
+        {
+            nome: "João Silva",
+            email: "joao@unifor.br",
+            telefone: "(85) 98888-7777",
+            senha: "joao123",
+            tipo: 1
+        }
+        ];
+        localStorage.setItem("usuarios", JSON.stringify(usuariosDefault));
+    }
 
 
-  // Cadastro de novos usuários
+
+ // Cadastro de novos usuários
   const formCadastro = document.getElementById("formCadastro");
   if (formCadastro) {
     formCadastro.addEventListener("submit", async function (e) {
@@ -32,32 +49,33 @@ document.addEventListener("DOMContentLoaded", function () {
         email,
         telefone,
         senha,
-        idTipoUsuario: 1 // Spring Boot vai definir como 1 por padrão no service
+        tipo: 1
       };
 
-      try {
-        const response = await fetch("http://localhost:8080/usuarios/cadastro", { // URL ATUALIZADA
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(novoUsuario),
-        });
+     
+    try {
+      const response = await fetch("http://localhost:3000/usuarios/cadastro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(novoUsuario),
+      });
 
-        if (response.ok) {
-          alert("Cadastro realizado com sucesso!");
-          window.location.href = "login.html";
-        } else {
-          const errorData = await response.json(); // Pega a mensagem de erro do backend
-          alert(`Erro no cadastro: ${errorData.error || 'Erro desconhecido'}`);
-        }
-      } catch (err) {
-        console.error("Erro ao cadastrar usuário:", err);
-        alert("Erro ao conectar ao servidor.");
+      if (response.ok) {
+        alert("Cadastro realizado com sucesso!");
+        window.location.href = "login.html";
+      } else {
+        const error = await response.json();
+        alert(`Erro no cadastro: ${error.message}`);
       }
+    } catch (err) {
+      console.error("Erro ao cadastrar usuário:", err);
+      alert("Erro ao conectar ao servidor.");
+    }
     });
   }
 
 
-  // Login de usuários
+ // Login de usuários
   const formLogin = document.getElementById("formLogin");
   if (formLogin) {
     formLogin.addEventListener("submit", async function (e) {
@@ -71,28 +89,32 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       try {
-        const response = await fetch("http://localhost:8080/usuarios/login", { // URL ATUALIZADA
+        const response = await fetch("http://localhost:3000/usuarios/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, senha }),
         });
 
         if (response.ok) {
+          // Desestrutura user e token da resposta
           const { user, token } = await response.json();
 
-          // Ajuste para acessar o idTipoUsuario corretamente (camelCase)
+          // Armazena no localStorage
           localStorage.setItem("usuarioLogado", JSON.stringify({ user, token }));
+         
 
-          if (user.idTipoUsuario === 2) { // Verifique se é 2 para ADM
-            alert(`Bem-vindo, ADM ${user.nome}!`);
+          // Decide pela role com base em id_tipo_usuario
+          if (user.id_tipo_usuario === "2") {
+            alert(`Bem‑vindo, ADM ${user.nome}!`);
             window.location.href = "painel-adm.html";
           } else {
-            alert(`Bem-vindo ao sistema de reservas, ${user.nome}!`);
+            alert(`Bem‑vindo ao sistema de reservas, ${user.nome}!`);
             window.location.href = "reservas.html";
           }
         } else {
-          const errorData = await response.json();
-          alert(`Erro no login: ${errorData.error}`);
+          // Captura a mensagem de erro padrão do backend
+          const { error } = await response.json();
+          alert(`Erro no login: ${error}`);
         }
       } catch (err) {
         console.error("Erro ao fazer login:", err);
@@ -100,4 +122,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
+
 });
