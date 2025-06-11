@@ -1,15 +1,20 @@
+// UNIQUADRAS-SpringBoot/uniquadras/src/minhasReservas.js
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 document.addEventListener("DOMContentLoaded", async function () {
-  const apiReservas = "http://localhost:3000/reservas";
-  const apiQuadras = "http://localhost:3000/quadras";
-  const apiHorarios = "http://localhost:3000/horarios";
+  // MUDANÇA AQUI: de 3000 para 8080 em todas as APIs
+  const apiReservas = "http://localhost:8080/reservas";
+  // apiQuadras e apiHorarios não são mais estritamente necessários para listar,
+  // pois o DTO da Reserva já traz os nomes. Podem ser removidas se quiser.
+  // const apiQuadras = "http://localhost:8080/quadras"; 
+  // const apiHorarios = "http://localhost:8080/horarios"; 
   const listaReservas = document.getElementById("listaReservas");
 
   const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-  const usuarioId = usuarioLogado?.user?.id || usuarioLogado?.id;
+  // Pegando o ID do usuário diretamente do objeto 'user' dentro de 'usuarioLogado'
+  const usuarioId = usuarioLogado?.user?.id;
 
   if (!usuarioId) {
     alert("Você precisa estar logado para ver suas reservas.");
@@ -17,38 +22,21 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  let quadras = [];
-  let horarios = [];
-
-  async function carregarDados() {
-    try {
-      const [quadrasRes, horariosRes] = await Promise.all([
-        fetch(apiQuadras),
-        fetch(apiHorarios)
-      ]);
-      quadras = await quadrasRes.json();
-      horarios = await horariosRes.json();
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-    }
-  }
-
-  function obterNomeQuadra(idQuadra) {
-    const quadra = quadras.find(q => q.id == idQuadra);
-    return quadra ? quadra.nome : 'Quadra não encontrada';
-  }
-
-  function obterHorario(idHorario) {
-    const horario = horarios.find(h => h.id == idHorario);
-    return horario ? horario.horario : 'Horário não encontrado';
-  }
+  // As funções 'carregarDados', 'obterNomeQuadra' e 'obterHorario' podem ser removidas
+  // pois o ReservaResponseDTO do backend já retorna os nomes e horários formatados.
+  // let quadras = [];
+  // let horarios = [];
+  // async function carregarDados() { ... }
+  // function obterNomeQuadra(idQuadra) { ... }
+  // function obterHorario(idHorario) { ... }
 
   async function listarReservas() {
     try {
-      const response = await fetch(`${apiReservas}?id_usuario=${usuarioId}`);
+      // Usando o endpoint específico para listar reservas por usuário
+      const response = await fetch(`${apiReservas}/usuario/${usuarioId}`);
       if (!response.ok) throw new Error("Erro ao buscar reservas");
 
-      const reservas = await response.json();
+      const reservas = await response.json(); // A resposta já é uma lista de ReservaResponseDTO
 
       if (reservas.length === 0) {
         listaReservas.innerHTML = `<p class="text-muted">Você ainda não fez nenhuma reserva.</p>`;
@@ -58,12 +46,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       listaReservas.innerHTML = "";
 
       reservas.forEach(reserva => {
-        const nomeQuadra = obterNomeQuadra(reserva.id_quadra);
-        const horario = obterHorario(reserva.id_horario);
+        // Usando os dados diretamente do DTO da reserva
+        const nomeQuadra = reserva.nomeQuadra;
+        const horarioReserva = reserva.horarioReserva;
+        const dataReserva = reserva.dataReserva;
+
         const card = document.createElement("div");
         card.className = "col-md-6 mb-4";
-        console.log(reserva.data)
-        
+
         card.innerHTML = /*html*/`
           <div class="card border-primary">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -74,12 +64,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             </div>
             <div class="card-body text-dark">
               <h5 class="card-title text-dark">${nomeQuadra}</h5>
-              <p class="card-text text-dark"><strong>📅 Data:</strong> ${reserva.data}</p>
-              <p class="card-text text-dark"><strong>⏰ Horário:</strong> ${horario}</p>
+              <p class="card-text text-dark"><strong>📅 Data:</strong> ${dataReserva}</p>
+              <p class="card-text text-dark"><strong>⏰ Horário:</strong> ${horarioReserva}</p>
             </div>
           </div>
         `;
-        console.log(nomeQuadra)
 
         // Evento para botão de cancelar
         card.querySelector('button').addEventListener('click', async () => {
@@ -87,16 +76,21 @@ document.addEventListener("DOMContentLoaded", async function () {
           if (!confirmacao) return;
 
           try {
+            // Requisição DELETE para cancelar a reserva
             const resp = await fetch(`${apiReservas}/${reserva.id}`, {
               method: 'DELETE'
             });
 
-            if (!resp.ok) throw new Error("Erro ao cancelar reserva");
+            if (!resp.ok) {
+              const errorData = await resp.json();
+              throw new Error(errorData.error || "Erro ao cancelar reserva");
+            }
 
             alert("Reserva cancelada com sucesso!");
-            listarReservas(); // Atualiza a lista
+            listarReservas(); // Atualiza a lista após o cancelamento
           } catch (error) {
             alert("Erro ao cancelar: " + error.message);
+            console.error("Erro detalhado:", error);
           }
         });
 
@@ -109,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  await carregarDados();
+  // Removendo a chamada de carregarDados pois os nomes já vêm no DTO da reserva
+  // await carregarDados(); 
   await listarReservas();
 });

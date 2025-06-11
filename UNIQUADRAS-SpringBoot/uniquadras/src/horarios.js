@@ -1,6 +1,8 @@
-const apiQuadras = "http://localhost:3000/quadras";
-const apiReservas = "http://localhost:3000/reservas";
-const apiHorarios = "http://localhost:3000/horarios";
+// UNIQUADRAS-SpringBoot/uniquadras/src/horarios.js
+// MUDANÇA AQUI: de 3000 para 8080 em todas as APIs
+const apiQuadras = "http://localhost:8080/quadras";
+const apiReservas = "http://localhost:8080/reservas";
+const apiHorarios = "http://localhost:8080/horarios";
 
 export function formatarDataParaExibicao(dataString) {
   const [ano, mes, dia] = dataString.split('-');
@@ -19,7 +21,7 @@ export async function buscarQuadrasParaQuadro() {
   }
 }
 
-// NOVO: Função para popular o select de quadras em um formulário
+// Função para popular o select de quadras em um formulário
 export async function renderizarListaQuadrasParaSelect(selectElement) {
   try {
     const quadras = await buscarQuadrasParaQuadro();
@@ -49,10 +51,18 @@ export async function buscarHorariosPorQuadraEData(idQuadra, data) {
 }
 
 // Busca todas as reservas para uma data (opcionalmente por quadra)
+// Esta função pode não ser mais tão necessária pois o painel do ADM
+// agora manipula diretamente os horários, e não as reservas para mudar status.
 export async function buscarReservas(data, idQuadra = null) {
   try {
-    let url = `${apiReservas}?data=${data}`;
-    if (idQuadra) url += `&id_quadra=${idQuadra}`;
+    let url = `${apiReservas}`; // MUDANÇA: Spring Boot retorna DTOs com todos os dados
+    if (idQuadra) url += `/quadra/${idQuadra}`; // Exemplo de rota, se houvesse uma
+    if (data) url += `?data=${data}`; // Filtro por data
+
+    // A rota /reservas no Spring Boot lista tudo. Para filtrar por data ou quadra,
+    // seria necessário implementar um método de busca no ReservaController.
+    // Atualmente, ele lista todas as reservas ou por id de usuário.
+    // Para o quadro de reservas, é melhor gerenciar pelos horários.
     const res = await fetch(url);
     if (!res.ok) throw new Error("Erro ao buscar reservas");
     return await res.json();
@@ -62,43 +72,36 @@ export async function buscarReservas(data, idQuadra = null) {
   }
 }
 
-// Atualiza (reserva/cancela) uma reserva pelo id do horário (mantido para compatibilidade com outros scripts)
+// Esta função `atualizarReserva` deve ser descontinuada ou refatorada,
+// pois a lógica de status do horário agora é feita via PATCH em /horarios/{id}/status.
+// A remoção de reserva também é direta via DELETE em /reservas/{id}.
+// Ela está mantida aqui para evitar quebrar outras partes se ainda houver referências,
+// mas seu uso principal no ADM será substituído.
 export async function atualizarReserva(horarioId, acao) {
-  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const reservaData = {
-    id_usuario: usuarioLogado?.user?.id || 0,
-    id_horario: horarioId
-  };
-
-  try {
-    let response;
-    if (acao === "reservar") {
-      response = await fetch(apiReservas, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reservaData)
-      });
-    } else {
-      // Buscar reserva pelo id_horario para cancelar
-      const reservas = await buscarReservasPorHorario(horarioId);
-      const reserva = reservas[0]; // Assume que há apenas uma reserva por id_horario para simplificar
-      if (!reserva) throw new Error("Reserva não encontrada para cancelar.");
-      response = await fetch(`${apiReservas}/${reserva.id}`, { method: "DELETE" });
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao atualizar reserva');
-    }
-  } catch (err) {
-    alert("Erro ao atualizar reserva: " + (err.error || err.message));
-    console.error("Erro detalhado:", err);
-  }
+  // A lógica de "reserva" pelo lado do admin agora é feita pelo status do horário.
+  // A ação "cancelar" uma reserva é feita pelo ID da RESERVA, não do horário.
+  // Esta função precisa ser revisada ou removida de contextos admin.
+  alert("Atenção: Esta função (atualizarReserva) não deve ser usada no painel ADM para alterar status.");
+  console.warn("Função 'atualizarReserva' chamada, mas a lógica de status de horário mudou. Use o endpoint PATCH do HorarioController.");
+  // Exemplo de como seria para CANCELAR UMA RESERVA específica se tivéssemos o ID da reserva:
+  // if (acao === "cancelar") {
+  //   const reservaIdParaCancelar = ...; // Precisaríamos do ID da reserva, não do horário
+  //   try {
+  //     const response = await fetch(`${apiReservas}/${reservaIdParaCancelar}`, { method: "DELETE" });
+  //     if (!response.ok) throw new Error("Erro ao cancelar reserva.");
+  //     alert("Reserva cancelada com sucesso!");
+  //   } catch (error) {
+  //     alert("Erro ao cancelar reserva: " + error.message);
+  //   }
+  // }
 }
 
-// Busca reservas por id_horario
+
+// Busca reservas por id_horario (pode não ser mais necessária se o admin manipula horários)
 export async function buscarReservasPorHorario(idHorario) {
   try {
+    // A rota para buscar por idHorario existe no backend, mas é para verificar se *existe* uma reserva,
+    // e não para retornar detalhes completos para o frontend.
     const res = await fetch(`${apiReservas}?id_horario=${idHorario}`);
     if (!res.ok) throw new Error("Erro ao buscar reservas por horário");
     return await res.json();
@@ -110,10 +113,9 @@ export async function buscarReservasPorHorario(idHorario) {
 
 // Carrega a tabela de horários para o admin (dinamicamente)
 export async function carregarHorariosAdm(dataSelecionada) {
-  const tabelaCompleta = document.getElementById("reservasTable"); // AGORA BUSCA A TABELA COMPLETA PELO ID
-  const thead = tabelaCompleta.querySelector('thead tr'); // BUSCA THEAD DENTRO DA TABELA COMPLETA
-  const tbody = tabelaCompleta.querySelector('tbody'); // BUSCA TBODY DENTRO DA TABELA COMPLETA
-
+  const tabelaCompleta = document.getElementById("reservasTable");
+  const thead = tabelaCompleta.querySelector('thead tr');
+  const tbody = tabelaCompleta.querySelector('tbody');
 
   // 1. Buscar TODOS os horários para a data selecionada (de todas as quadras)
   let todosHorariosParaData = [];
@@ -129,12 +131,12 @@ export async function carregarHorariosAdm(dataSelecionada) {
 
   // 2. Extrair e ordenar os horários únicos (intervalos de tempo)
   const horariosUnicos = [...new Set(todosHorariosParaData.map(h => h.horario))]
-    .sort((a, b) => {
-      // Função de ordenação mais robusta para "HH:MM - HH:MM"
-      const timeA = parseInt(a.split(':')[0]);
-      const timeB = parseInt(b.split(':')[0]);
-      return timeA - timeB;
-    });
+      .sort((a, b) => {
+        // Função de ordenação mais robusta para "HH:MM - HH:MM"
+        const timeA = parseInt(a.split(':')[0]);
+        const timeB = parseInt(b.split(':')[0]);
+        return timeA - timeB;
+      });
 
   // 3. Construir o cabeçalho da tabela dinamicamente
   let headerHtml = '<th>Quadra</th>';
@@ -149,14 +151,14 @@ export async function carregarHorariosAdm(dataSelecionada) {
 
   for (const quadra of quadras) {
     // Buscar horários ESPECÍFICOS desta quadra para a data selecionada
-    const horariosQuadra = todosHorariosParaData.filter(h => h.id_quadra == quadra.id);
+    const horariosQuadra = todosHorariosParaData.filter(h => h.quadra.id == quadra.id); // Acesso a quadra.id via objeto aninhado
 
     let row = `<tr><th>${quadra.nome}</th>`;
-    horariosUnicos.forEach(horarioPadrao => { // Iterar sobre os horários únicos para preencher as colunas
+    horariosUnicos.forEach(horarioPadrao => {
       const horarioObj = horariosQuadra.find(h => h.horario === horarioPadrao);
 
-      let status = "Não Existe"; // Default se o horário não existir para esta quadra
-      let btnClass = "btn-secondary"; // Cor neutra para "Não Existe"
+      let status = "Não Existe";
+      let btnClass = "btn-secondary";
       let horarioId = "";
       let disabledAttr = 'disabled'; // Desabilita botões se o horário não existe
 
@@ -164,7 +166,7 @@ export async function carregarHorariosAdm(dataSelecionada) {
         horarioId = horarioObj.id;
         status = horarioObj.status;
         btnClass = status === "Disponível" ? "btn-disponivel" : "btn-indisponivel";
-        disabledAttr = ''; // Habilita se o horário existe
+        disabledAttr = '';
       }
 
       row += `<td>
@@ -188,12 +190,12 @@ export async function carregarHorariosAdm(dataSelecionada) {
   }
 
   // Adiciona eventos aos botões de status
-  document.querySelectorAll("#reservasTable button[data-horario-id][data-status]").forEach(btn => { // SELETOR AJUSTADO PARA #reservasTable
+  document.querySelectorAll("#reservasTable button[data-horario-id][data-status]").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const horarioId = e.currentTarget.dataset.horarioId;
       const statusAtual = e.currentTarget.dataset.status;
 
-      if (!horarioId) { // Se não há ID, o slot não existe no banco
+      if (!horarioId) {
         alert("Este horário não está cadastrado. Use 'Adicionar Novo Horário' para criá-lo.");
         return;
       }
@@ -201,16 +203,18 @@ export async function carregarHorariosAdm(dataSelecionada) {
       // Lógica para admins: alternar status
       const novoStatus = statusAtual === "Disponível" ? "Indisponível" : "Disponível";
       try {
-          await fetch(`${apiHorarios}/${horarioId}/status`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: novoStatus })
-          });
-          alert(`Status do horário ${horarioId} alterado para ${novoStatus}!`);
-          await carregarHorariosAdm(document.getElementById("dataSelecionada").value); // Recarrega para refletir a mudança
+        // Usa o endpoint PATCH do HorarioController para mudar o status
+        await fetch(`${apiHorarios}/${horarioId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: novoStatus })
+        });
+        alert(`Status do horário ${horarioId} alterado para ${novoStatus}!`);
+        // Recarrega a tabela para refletir a mudança
+        await carregarHorariosAdm(document.getElementById("dataSelecionada").value);
       } catch (error) {
-          console.error("Erro ao alternar status:", error);
-          alert("Erro ao alterar status do horário.");
+        console.error("Erro ao alternar status:", error);
+        alert("Erro ao alterar status do horário.");
       }
     });
   });
@@ -219,7 +223,7 @@ export async function carregarHorariosAdm(dataSelecionada) {
   document.querySelectorAll(".btn-editar-horario").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const horarioId = e.currentTarget.dataset.horarioId;
-      if (horarioId) { // Só edita se o horário existir
+      if (horarioId) {
         await preencherFormularioEdicaoHorario(horarioId);
       }
     });
@@ -228,15 +232,15 @@ export async function carregarHorariosAdm(dataSelecionada) {
   document.querySelectorAll(".btn-remover-horario").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const horarioId = e.currentTarget.dataset.horarioId;
-      if (horarioId) { // Só remove se o horário existir
+      if (horarioId) {
         await removerHorario(horarioId);
-        await carregarHorariosAdm(document.getElementById("dataSelecionada").value); // Recarrega para refletir a remoção
+        await carregarHorariosAdm(document.getElementById("dataSelecionada").value);
       }
     });
   });
 }
 
-// NOVO: Função para adicionar ou editar um horário
+// Função para adicionar ou editar um horário
 export async function adicionarOuEditarHorario(horarioData) {
   try {
     const metodo = horarioData.id ? "PUT" : "POST";
@@ -260,7 +264,7 @@ export async function adicionarOuEditarHorario(horarioData) {
   }
 }
 
-// NOVO: Função para remover um horário
+// Função para remover um horário
 export async function removerHorario(id) {
   if (!confirm("Deseja realmente remover este horário?")) return;
   try {
@@ -277,7 +281,7 @@ export async function removerHorario(id) {
   }
 }
 
-// NOVO: Função para preencher o formulário do modal para edição
+// Função para preencher o formulário do modal para edição
 export async function preencherFormularioEdicaoHorario(id) {
   try {
     const response = await fetch(`${apiHorarios}/${id}`);
@@ -289,8 +293,9 @@ export async function preencherFormularioEdicaoHorario(id) {
 
     // Preenche os campos do modal
     document.getElementById('horarioId').value = horario.id;
-    document.getElementById('modalHorarioQuadraSelect').value = horario.id_quadra;
-    document.getElementById('modalHorarioDataInput').value = horario.data.split('T')[0]; // Formata a data
+    // O ID da quadra no Horario vem como um objeto aninhado 'quadra.id'
+    document.getElementById('modalHorarioQuadraSelect').value = horario.quadra.id;
+    document.getElementById('modalHorarioDataInput').value = horario.data; // Data já no formato YYYY-MM-DD
     document.getElementById('modalHorarioHoraInput').value = horario.horario;
     document.getElementById('modalHorarioStatusSelect').value = horario.status;
 

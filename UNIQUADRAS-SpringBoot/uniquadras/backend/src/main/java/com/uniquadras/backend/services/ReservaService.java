@@ -1,3 +1,4 @@
+// UNIQUADRAS-SpringBoot/uniquadras/backend/src/main/java/com/uniquadras/backend/services/ReservaService.java
 package com.uniquadras.backend.services;
 
 import com.uniquadras.backend.models.Horario;
@@ -9,11 +10,10 @@ import com.uniquadras.backend.repositories.QuadraRepository;
 import com.uniquadras.backend.repositories.ReservaRepository;
 import com.uniquadras.backend.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import com.uniquadras.backend.events.ReservaCriadaEvent;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // Import para @Transactional
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.Optional;
 @Service
 public class ReservaService {
     @Autowired
-    private ApplicationEventPublisher eventPublisher; 
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     private ReservaRepository reservaRepository;
@@ -44,11 +44,11 @@ public class ReservaService {
         return reservaRepository.findById(id);
     }
 
-    @Transactional // Garante que a transação para reserva e atualização de status seja atômica
+    @Transactional
     public Reserva criar(Reserva reserva) {
         if (reserva.getUsuario() == null || reserva.getUsuario().getId() == null ||
-            reserva.getQuadra() == null || reserva.getQuadra().getId() == null ||
-            reserva.getHorario() == null || reserva.getHorario().getId() == null) {
+                reserva.getQuadra() == null || reserva.getQuadra().getId() == null ||
+                reserva.getHorario() == null || reserva.getHorario().getId() == null) {
             throw new IllegalArgumentException("Dados de usuário, quadra e horário são obrigatórios.");
         }
 
@@ -64,13 +64,16 @@ public class ReservaService {
 
         // Verifica se o horário já está reservado
         if ("Indisponível".equals(horario.getStatus())) {
-             throw new IllegalStateException("O horário selecionado já está reservado.");
+            throw new IllegalStateException("O horário selecionado já está reservado.");
         }
-        
-        // Verifica se já existe uma reserva para este horário
-        if (reservaRepository.findByHorarioId(horario.getId()).stream().anyMatch(r -> r.getHorario().getStatus().equals("Indisponível"))) {
-            throw new IllegalStateException("O horário selecionado já possui uma reserva ativa.");
-        }
+
+        // A linha abaixo foi removida ou ajustada porque a verificação de status "Indisponível"
+        // no próprio objeto Horario já é suficiente.
+        // A busca por findByHorarioId no ReservaRepository normalmente seria para verificar
+        // se existe *alguma* reserva para o horário, mas o status do horário já indica isso.
+        // if (reservaRepository.findByHorarioId(horario.getId()).stream().anyMatch(r -> r.getHorario().getStatus().equals("Indisponível"))) {
+        //     throw new IllegalStateException("O horário selecionado já possui uma reserva ativa.");
+        // }
 
         // Define as entidades gerenciadas no objeto reserva
         reserva.setUsuario(usuarioOptional.get());
@@ -85,7 +88,6 @@ public class ReservaService {
         horarioRepository.save(horario);
 
         // Publica evento de reserva criada
-        // Permite que outros componentes do sistema possam reagir a essa ação
         eventPublisher.publishEvent(new ReservaCriadaEvent(this, novaReserva));
 
         return novaReserva;
@@ -96,17 +98,17 @@ public class ReservaService {
                 .map(reservaExistente -> {
                     // Atualiza as associações se os IDs forem fornecidos e diferentes
                     if (reservaAtualizada.getUsuario() != null && reservaAtualizada.getUsuario().getId() != null &&
-                        !reservaExistente.getUsuario().getId().equals(reservaAtualizada.getUsuario().getId())) {
+                            !reservaExistente.getUsuario().getId().equals(reservaAtualizada.getUsuario().getId())) {
                         usuarioRepository.findById(reservaAtualizada.getUsuario().getId())
                                 .ifPresent(reservaExistente::setUsuario);
                     }
                     if (reservaAtualizada.getQuadra() != null && reservaAtualizada.getQuadra().getId() != null &&
-                        !reservaExistente.getQuadra().getId().equals(reservaAtualizada.getQuadra().getId())) {
+                            !reservaExistente.getQuadra().getId().equals(reservaAtualizada.getQuadra().getId())) {
                         quadraRepository.findById(reservaAtualizada.getQuadra().getId())
                                 .ifPresent(reservaExistente::setQuadra);
                     }
                     if (reservaAtualizada.getHorario() != null && reservaAtualizada.getHorario().getId() != null &&
-                        !reservaExistente.getHorario().getId().equals(reservaAtualizada.getHorario().getId())) {
+                            !reservaExistente.getHorario().getId().equals(reservaAtualizada.getHorario().getId())) {
                         horarioRepository.findById(reservaAtualizada.getHorario().getId())
                                 .ifPresent(reservaExistente::setHorario);
                     }
@@ -115,7 +117,7 @@ public class ReservaService {
                 });
     }
 
-    @Transactional // Garante que a transação para exclusão e atualização de status seja atômica
+    @Transactional
     public boolean deletar(Long id) {
         return reservaRepository.findById(id).map(reserva -> {
             // Reverte o status do horário para "Disponível" antes de deletar a reserva

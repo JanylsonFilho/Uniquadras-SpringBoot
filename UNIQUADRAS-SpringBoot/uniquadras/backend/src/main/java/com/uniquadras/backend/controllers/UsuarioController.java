@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder; // Adicione este import!
 
 import java.util.List;
 import java.util.Map;
@@ -13,11 +14,14 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/usuarios")
-@CrossOrigin(origins = "http://localhost:5173") // Permitir requisições do frontend
+@CrossOrigin(origins = "http://localhost:5173") 
 public class UsuarioController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired // Adicione esta injeção do PasswordEncoder
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping
     public ResponseEntity<List<Usuario>> listarUsuarios() {
@@ -38,8 +42,7 @@ public class UsuarioController {
         if (existingUser.isPresent()) {
             return new ResponseEntity<>(Map.of("error", "Email já cadastrado."), HttpStatus.CONFLICT);
         }
-        Usuario novoUsuario = usuarioService.criar(usuario);
-        // Retornar um DTO ou apenas dados básicos do usuário para evitar expor a senha
+        Usuario novoUsuario = usuarioService.criar(usuario); // A senha já será criptografada no serviço
         return new ResponseEntity<>(novoUsuario, HttpStatus.CREATED);
     }
 
@@ -56,12 +59,12 @@ public class UsuarioController {
 
         if (usuarioOptional.isPresent()) {
             Usuario usuario = usuarioOptional.get();
-            // Em um projeto real, aqui você usaria um PasswordEncoder para verificar a senha
-            if (usuario.getSenha().equals(senha)) {
-                // Retornar um DTO do usuário e talvez um token JWT em um projeto real
-                // Por enquanto, apenas o usuário
+            // MODIFICADO: Use passwordEncoder.matches() para verificar a senha
+            if (passwordEncoder.matches(senha, usuario.getSenha())) {
+                // Senha correta
                 return new ResponseEntity<>(Map.of("user", usuario, "token", "fake-token"), HttpStatus.OK);
             } else {
+                // Senha incorreta (inclui casos onde a senha armazenada não é criptografada e não corresponde)
                 return new ResponseEntity<>(Map.of("error", "Senha incorreta."), HttpStatus.UNAUTHORIZED);
             }
         } else {
@@ -89,6 +92,13 @@ public class UsuarioController {
     public ResponseEntity<Usuario> promoverUsuario(@PathVariable Long id) {
         Optional<Usuario> usuarioPromovido = usuarioService.promoverParaAdmin(id);
         return usuarioPromovido.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @PutMapping("/rebaixar/{id}")
+    public ResponseEntity<Usuario> rebaixarUsuario(@PathVariable Long id) {
+        Optional<Usuario> usuarioRebaixado = usuarioService.rebaixarParaUsuario(id);
+        return usuarioRebaixado.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }

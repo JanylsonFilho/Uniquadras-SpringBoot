@@ -1,4 +1,6 @@
-const apiQuadras = "http://localhost:3000/quadras";
+// UNIQUADRAS-SpringBoot/uniquadras/src/quadras.js
+// MUDANÇA AQUI: de 3000 para 8080 para a API de quadras
+const apiQuadras = "http://localhost:8080/quadras";
 const listaQuadrasContainer = document.getElementById("listaQuadras");
 const btnAdicionarNovaQuadra = document.getElementById("btnAdicionarNovaQuadra");
 const modalQuadra = new bootstrap.Modal(document.getElementById("modalQuadra"));
@@ -69,12 +71,17 @@ export async function adicionarOuEditarQuadra(data) {
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) throw await response.json();
+    if (!response.ok) {
+      // Tenta ler a mensagem de erro do corpo da resposta, se disponível
+      const errorData = await response.json();
+      throw new Error(errorData.error || response.statusText);
+    }
     alert("Quadra salva com sucesso!");
     modalQuadra.hide();
     renderizarListaQuadras();
   } catch (err) {
-    alert("Erro ao salvar quadra: " + (err.error || err.message));
+    alert("Erro ao salvar quadra: " + err.message);
+    console.error("Erro detalhado:", err);
   }
 }
 
@@ -83,11 +90,16 @@ export async function removerQuadra(id) {
 
   try {
     const response = await fetch(`${apiQuadras}/${id}`, { method: "DELETE" });
-    if (!response.ok) throw await response.json();
+    if (!response.ok) {
+      // Tenta ler a mensagem de erro do corpo da resposta, se disponível
+      const errorData = await response.json();
+      throw new Error(errorData.error || response.statusText);
+    }
     alert("Quadra removida com sucesso!");
     renderizarListaQuadras();
   } catch (err) {
-    alert("Erro ao remover quadra: " + (err.error || err.message));
+    alert("Erro ao remover quadra: " + err.message);
+    console.error("Erro detalhado:", err);
   }
 }
 
@@ -105,6 +117,7 @@ export async function preencherFormularioEdicao(id) {
     modalQuadra.show();
   } catch (err) {
     alert("Erro ao carregar dados da quadra para edição: " + err.message);
+    console.error("Erro detalhado:", err);
   }
 }
 
@@ -116,6 +129,7 @@ export function inicializarFormularioQuadra() {
       nome: nomeQuadraModalInput.value,
       tipo: tipoQuadraModalSelect.value,
       status: statusQuadraModalSelect.value,
+      localizacao: "Parque Desportivo" // Adicionar localização padrão, ou um campo no modal para isso
     };
     await adicionarOuEditarQuadra(data);
   });
