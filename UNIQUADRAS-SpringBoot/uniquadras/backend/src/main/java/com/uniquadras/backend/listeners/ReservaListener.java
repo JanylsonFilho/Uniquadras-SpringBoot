@@ -17,11 +17,21 @@ public class ReservaListener {
         Map<String, Object> payload = new HashMap<>();
         payload.put("idReserva", reserva.getId());
         payload.put("usuario", reserva.getUsuario().getNome());
+        payload.put("email", reserva.getUsuario().getEmail());
         payload.put("quadra", reserva.getQuadra().getNome());
         payload.put("horario", reserva.getHorario().getHorario());
 
+        // Corpo do e-mail personalizado
+        String mensagem = String.format(
+            "Olá %s,\n\nSua reserva foi criada com sucesso!\nQuadra: %s\nHorário: %s\n\nObrigado por usar o Uniquadras.",
+            reserva.getUsuario().getNome(),
+            reserva.getQuadra().getNome(),
+            reserva.getHorario().getHorario()
+        );
+        payload.put("mensagem", mensagem);
+
         RestTemplate restTemplate = new RestTemplate();
-        String url = "http://localhost:8082/notify"; 
+        String url = "http://localhost:8082/notify";
         try {
             restTemplate.postForEntity(url, payload, Void.class);
         } catch (Exception e) {
